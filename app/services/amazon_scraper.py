@@ -69,19 +69,21 @@ def scrape_amazon_discounted_products() -> List[Product]:
                     "src"
                 )
 
-                original_price_whole = item.find_element(
+                discounted_price_whole = item.find_element(
                     By.CLASS_NAME, "a-price-whole"
                 ).text.strip()
-                original_price_fraction = item.find_element(
+                discounted_price_fraction = item.find_element(
                     By.CLASS_NAME, "a-price-fraction"
                 ).text.strip()
-                discounted_price_el = item.find_element(By.CLASS_NAME, "a-offscreen")
+                original_price_el = item.find_element(By.CLASS_NAME, "a-offscreen")
 
-                original_price = original_price_whole + "." + original_price_fraction
                 discounted_price = (
-                    discounted_price_el.text.strip()
-                    if discounted_price_el
-                    else original_price
+                    discounted_price_whole + "." + discounted_price_fraction
+                )
+                original_price = (
+                    original_price_el.text.strip().replace("$", "")
+                    if original_price_el
+                    else discounted_price
                 )
 
                 orig = float(original_price)
