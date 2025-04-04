@@ -40,36 +40,52 @@ def scrape_amazon_discounted_products() -> List[Product]:
     - store: str
     - category: str
     """
-    driver = initialize_driver()
+    products = []
 
     try:
+        driver = initialize_driver()
         driver.get(AMAZON_MEN_SALE_URL)
 
         WebDriverWait(driver, 10).until(
             EC.presence_of_all_elements_located((By.CLASS_NAME, "s-main-slot"))
         )
 
-        products = []
-
         items = driver.find_elements(By.CSS_SELECTOR, "div[data-asin]")
 
         for item in items:
             try:
-                name = item.find_element(By.CLASS_NAME, "a-text-normal").text
-                url = f"https://www.amazon.com{item.find_element(By.TAG_NAME, 'a').get_attribute('href')}"
-                image_url = item.find_element(By.TAG_NAME, "img").get_attribute("src")
-
-                original_price_el = item.find_element(By.CLASS_NAME, "a-price-whole")
-                discounted_price_el = item.find_element(By.CLASS_NAME, "a-price-symbol")
-
-                if not original_price_el or not discounted_price_el:
+                if (
+                    item.get_attribute("data-index")
+                    and item.get_attribute("data-index") <= "5"
+                ):
                     continue
+                name = (
+                    item.find_element(By.CLASS_NAME, "a-link-normal")
+                    .get_attribute("aria-label")
+                    .strip()
+                )
+                url = f"https://www.amazon.com{item.find_element(By.CLASS_NAME, 'a-link-normal').get_attribute('href')}"
+                image_url = item.find_element(By.CLASS_NAME, "s-image").get_attribute(
+                    "src"
+                )
 
-                original_price = original_price_el.text
-                discounted_price = discounted_price_el.text
+                original_price_whole = item.find_element(
+                    By.CLASS_NAME, "a-price-whole"
+                ).text.strip()
+                original_price_fraction = item.find_element(
+                    By.CLASS_NAME, "a-price-fraction"
+                ).text.strip()
+                discounted_price_el = item.find_element(By.CLASS_NAME, "a-offscreen")
 
-                orig = float(original_price.replace("$", "").replace(",", "").strip())
-                disc = float(discounted_price.replace("$", "").replace(",", "").strip())
+                original_price = original_price_whole + "." + original_price_fraction
+                discounted_price = (
+                    discounted_price_el.text.strip()
+                    if discounted_price_el
+                    else original_price
+                )
+
+                orig = float(original_price)
+                disc = float(discounted_price)
                 discount_percent = round((orig - disc) / orig * 100, 2)
 
                 products.append(
@@ -88,14 +104,14 @@ def scrape_amazon_discounted_products() -> List[Product]:
                 logger.error(f"Error processing Amazon product: {e}")
                 continue
 
-        return products
-
     except Exception as e:
         logger.error(f"Error scraping Amazon products: {e}")
         return []
 
     finally:
         driver.quit()
+
+    return products
 
 
 def guess_category_from_name(name: str) -> str:

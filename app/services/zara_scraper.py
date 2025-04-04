@@ -68,7 +68,8 @@ def scrape_zara_discounted_products() -> List[Product]:
                 ).text.strip()
                 discounted_price = (
                     item.find_element(By.CLASS_NAME, "discounted-price").text.strip()
-                    or original_price
+                    if item.find_element(By.CLASS_NAME, "discounted-price")
+                    else original_price
                 )
 
                 orig = float(original_price.replace("$ ", "").strip())
