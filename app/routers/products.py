@@ -16,21 +16,28 @@ def get_discounted_products(
 ):
     all_products: List[Product] = []
 
-    if not store or store == "zara":
-        all_products.extend(scrape_zara_discounted_products())
+    try:
+        if not store or store == "zara":
+            all_products.extend(scrape_zara_discounted_products())
 
-    # TODO: Add Amazon scraper
+        # TODO: Add Amazon scraper
 
-    # TODO: Make filtering more efficient
-    if category:
-        all_products = [
-            p for p in all_products if p.category.lower() == category.lower()
-        ]
+        # TODO: Make filtering more efficient
+        if category:
+            all_products = [
+                p for p in all_products if p.category.lower() == category.lower()
+            ]
 
-    if min_discount:
-        all_products = [p for p in all_products if p.discount_percent >= min_discount]
+        if min_discount:
+            all_products = [
+                p for p in all_products if p.discount_percent >= min_discount
+            ]
 
-    if store:
-        all_products = [p for p in all_products if p.store.lower() == store.lower()]
+        if store:
+            all_products = [p for p in all_products if p.store.lower() == store.lower()]
+
+    except Exception as e:
+        print(f"Error showing products: {e}")
+        return []
 
     return all_products
