@@ -3,12 +3,22 @@ from typing import List, Optional
 from fastapi import APIRouter, Query
 
 from app.models.product import Product
+from app.services.amazon_scraper import scrape_amazon_discounted_products
 from app.services.zara_scraper import scrape_zara_discounted_products
 
 router = APIRouter()
 
 
-@router.get("/discounted-products", response_model=List[Product])
+@router.get(
+    "/discounted-products",
+    response_model=List[Product],
+    summary="Get discounted men's clothing products",
+    description="""
+    This endpoint returns a list of discounted men's clothing products from various stores such as Zara and Amazon.
+    You can filter the products by store, category, and minimum discount percentage.
+    The response includes product details such as name, price, discount, and image URL.
+    """,
+)
 def get_discounted_products(
     store: Optional[str] = Query(None),
     category: Optional[str] = Query(None),
@@ -20,7 +30,8 @@ def get_discounted_products(
         if not store or store == "zara":
             all_products.extend(scrape_zara_discounted_products())
 
-        # TODO: Add Amazon scraper
+        if not store or store == "zara":
+            all_products.extend(scrape_amazon_discounted_products())
 
         # TODO: Make filtering more efficient
         if category:
