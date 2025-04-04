@@ -26,10 +26,16 @@ def get_discounted_products(
     min_discount: Optional[float] = Query(
         None, ge=0, le=100, description="Filter by minimum discount percentage (0-100%)"
     ),
+    page: int = 1,
+    page_size: int = 10,
 ) -> List[Product]:
     """
-    Returns a list of discounted men's clothing products from Zara and Amazon.
-    Filters can be applied for store, category, and minimum discount.
+    Get discounted products with filtering and pagination support.
+    - store: Optional filter by store (zara, amazon, etc.)
+    - category: Optional filter by category (shirts, jackets, etc.)
+    - min_discount: Optional filter by minimum discount percentage
+    - page: The page of results to return
+    - page_size: The number of results per page
     """
     all_products: List[Product] = []
 
@@ -51,10 +57,10 @@ def get_discounted_products(
                 p for p in all_products if p.discount_percent >= min_discount
             ]
 
-        if store:
-            all_products = [p for p in all_products if p.store.lower() == store.lower()]
+        start_index = (page - 1) * page_size
+        end_index = start_index + page_size
 
-        return all_products
+        return all_products[start_index:end_index]
 
     except Exception as e:
         logger.error(f"Error processing the request for discounted products: {e}")

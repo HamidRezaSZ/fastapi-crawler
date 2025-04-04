@@ -22,10 +22,14 @@ def scrape_zara_discounted_products() -> List[Product]:
     - store: str
     - category: str
     """
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"
+    }
+
     try:
-        response = requests.get(ZARA_MEN_SALE_URL)
+        response = requests.get(ZARA_MEN_SALE_URL, headers=headers)
         response.raise_for_status()
-    except requests.exceptions.RequestException as e:
+    except Exception as e:
         logger.error(f"Error fetching Zara page: {e}")
         return []
 

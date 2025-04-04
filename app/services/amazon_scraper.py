@@ -29,7 +29,7 @@ def scrape_amazon_discounted_products() -> List[Product]:
     try:
         response = requests.get(AMAZON_MEN_SALE_URL, headers=headers)
         response.raise_for_status()
-    except requests.exceptions.RequestException as e:
+    except Exception as e:
         logger.error(f"Error fetching Amazon page: {e}")
         return []
 
