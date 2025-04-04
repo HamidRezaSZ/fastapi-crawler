@@ -26,7 +26,7 @@ def get_discounted_products(
     min_discount: Optional[float] = Query(
         None, ge=0, le=100, description="Filter by minimum discount percentage (0-100%)"
     ),
-):
+) -> List[Product]:
     """
     Returns a list of discounted men's clothing products from Zara and Amazon.
     Filters can be applied for store, category, and minimum discount.

@@ -1,35 +1,46 @@
-from fastapi.testclient import TestClient
+import unittest
 
-from app.main import app
 from app.models.product import Product
-
-client = TestClient(app)
-
-mock_product = Product(
-    name="Mock Jacket",
-    original_price="$100.00",
-    discounted_price="$75.00",
-    discount_percent=25.0,
-    purchase_url="https://zara.com/mock-jacket",
-    image_url="https://zara.com/images/mock.jpg",
-    store="zara",
-    category="jacket",
-)
+from app.services.amazon_scraper import scrape_amazon_discounted_products
+from app.services.zara_scraper import scrape_zara_discounted_products
 
 
-def test_get_discounted_products(monkeypatch):
-    def mock_scraper():
-        return [mock_product]
+class TestScraping(unittest.TestCase):
 
-    from app.services import zara_scraper
+    def test_scrape_zara_discounted_products(self) -> None:
+        """Test the Zara scraping function with real data"""
+        products = scrape_zara_discounted_products()
 
-    # TODO: Use the real api instead of mocking
+        self.assertGreater(
+            len(products), 0, "No products found on Zara's discounted page"
+        )
 
-    monkeypatch.setattr(zara_scraper, "scrape_zara_discounted_products", mock_scraper)
+        for product in products:
+            self.assertIsInstance(product, Product)
+            self.assertIsInstance(product.name, str)
+            self.assertIsInstance(product.original_price, str)
+            self.assertIsInstance(product.discounted_price, str)
+            self.assertIsInstance(product.discount_percent, float)
+            self.assertIsInstance(product.purchase_url, str)
+            self.assertIsInstance(product.image_url, str)
 
-    response = client.get("/discounted-products")
-    assert response.status_code == 200
-    data = response.json()
-    assert len(data) == 1
-    assert data[0]["name"] == "Mock Jacket"
-    assert data[0]["discount_percent"] == 25.0
+    def test_scrape_amazon_discounted_products(self) -> None:
+        """Test the Amazon scraping function with real data"""
+        products = scrape_amazon_discounted_products()
+
+        self.assertGreater(
+            len(products), 0, "No products found on Amazon's discounted page"
+        )
+
+        for product in products:
+            self.assertIsInstance(product, Product)
+            self.assertIsInstance(product.name, str)
+            self.assertIsInstance(product.original_price, str)
+            self.assertIsInstance(product.discounted_price, str)
+            self.assertIsInstance(product.discount_percent, float)
+            self.assertIsInstance(product.purchase_url, str)
+            self.assertIsInstance(product.image_url, str)
+
+
+if __name__ == "__main__":
+    unittest.main()
