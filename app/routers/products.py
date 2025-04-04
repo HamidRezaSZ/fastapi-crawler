@@ -46,7 +46,6 @@ def get_discounted_products(
         if not store or store == "amazon":
             all_products.extend(scrape_amazon_discounted_products())
 
-        # TODO: Make filtering more efficient
         if category:
             all_products = [
                 p for p in all_products if p.category.lower() == category.lower()

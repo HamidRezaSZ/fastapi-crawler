@@ -39,6 +39,7 @@ def scrape_zara_discounted_products() -> List[Product]:
     - store: str
     - category: str
     """
+    products = []
 
     try:
         driver = initialize_driver()
@@ -46,26 +47,32 @@ def scrape_zara_discounted_products() -> List[Product]:
         driver.get(ZARA_MEN_SALE_URL)
 
         WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CLASS_NAME, "product"))
+            EC.presence_of_element_located((By.CLASS_NAME, "product-groups"))
         )
 
-        products = []
-        items = driver.find_elements(By.CLASS_NAME, "product")
+        items = driver.find_elements(By.CLASS_NAME, "_product")
 
         for item in items:
             try:
-                name = item.find_element(By.CLASS_NAME, "product-name").text.strip()
-                url = f"https://www.zara.com{item.find_element(By.TAG_NAME, 'a').get_attribute('href')}"
-                image_url = item.find_element(By.TAG_NAME, 'img').get_attribute('src')
+                name = item.find_element(
+                    By.CLASS_NAME, "product-grid-product-info__name"
+                ).text.strip()
+                url = item.find_element(
+                    By.CLASS_NAME, 'product-grid-product-info__name'
+                ).get_attribute('href')
+                image_url = item.find_element(
+                    By.CLASS_NAME, 'media-image__image'
+                ).get_attribute('src')
                 original_price = item.find_element(
-                    By.CLASS_NAME, "original-price"
+                    By.CLASS_NAME, "money-amount__main"
                 ).text.strip()
-                discounted_price = item.find_element(
-                    By.CLASS_NAME, "discounted-price"
-                ).text.strip()
+                discounted_price = (
+                    item.find_element(By.CLASS_NAME, "discounted-price").text.strip()
+                    or original_price
+                )
 
-                orig = float(original_price.replace("$", "").strip())
-                disc = float(discounted_price.replace("$", "").strip())
+                orig = float(original_price.replace("$ ", "").strip())
+                disc = float(discounted_price.replace("$ ", "").strip())
                 discount_percent = round((orig - disc) / orig * 100, 2)
 
                 products.append(
