@@ -1,39 +1,51 @@
 from typing import List
 
-from playwright.sync_api import sync_playwright
+import requests
+from bs4 import BeautifulSoup
 
 from app.models.product import Product
+from app.utils.logger import logger
+
+ZARA_MEN_SALE_URL = "https://www.zara.com/us/en/man-all-products-l7465.html"
 
 
 def scrape_zara_discounted_products() -> List[Product]:
+    """
+    Scrap Zara discounted mens clothing products
+    Returns a list of Product objects with the following attributes:
+    - name: str
+    - original_price: str
+    - discounted_price: str
+    - discount_percent: float
+    - purchase_url: str
+    - image_url: str
+    - store: str
+    - category: str
+    """
+    try:
+        response = requests.get(ZARA_MEN_SALE_URL)
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error fetching Zara page: {e}")
+        return []
+
+    soup = BeautifulSoup(response.content, "html.parser")
+
     products = []
 
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
-        page.goto(
-            "https://www.zara.com/us/en/man-all-products-l7465.html", timeout=60000
-        )
-        page.wait_for_timeout(5000)  # Wait for JS content to load
-
-        items = page.query_selector_all("div.product-grid-product")
-
+    try:
+        items = soup.find_all("li", class_="product")
         for item in items:
             try:
-                name = item.query_selector("a.name").inner_text().strip()
-                url = item.query_selector("a.name").get_attribute("href")
-                purchase_url = f"https://www.zara.com{url}"
-
-                image_url = item.query_selector("img").get_attribute("src")
-
-                original_price_el = item.query_selector("span.old-price")
-                discounted_price_el = item.query_selector("span.price__amount-current")
-
-                if not original_price_el or not discounted_price_el:
-                    continue
-
-                original_price = original_price_el.inner_text().strip()
-                discounted_price = discounted_price_el.inner_text().strip()
+                name = item.find("span", class_="product-name").get_text(strip=True)
+                url = f"https://www.zara.com{item.find('a')['href']}"
+                image_url = item.find("img")["src"]
+                original_price = item.find("span", class_="original-price").get_text(
+                    strip=True
+                )
+                discounted_price = item.find(
+                    "span", class_="discounted-price"
+                ).get_text(strip=True)
 
                 orig = float(original_price.replace("$", "").strip())
                 disc = float(discounted_price.replace("$", "").strip())
@@ -45,17 +57,18 @@ def scrape_zara_discounted_products() -> List[Product]:
                         original_price=original_price,
                         discounted_price=discounted_price,
                         discount_percent=discount_percent,
-                        purchase_url=purchase_url,
+                        purchase_url=url,
                         image_url=image_url,
                         store="zara",
                         category=guess_category_from_name(name),
                     )
                 )
             except Exception as e:
-                print(f"Error scraping an item: {e}")
+                logger.error(f"Error processing product in Zara: {e}")
                 continue
+    except Exception as e:
+        logger.error(f"Error scraping Zara products: {e}")
 
-        browser.close()
     return products
 
 
