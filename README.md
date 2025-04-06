@@ -1,99 +1,125 @@
 # FastAPI-Based E-commerce Crawler
 
-This project is a FastAPI-based backend service that crawls selected e-commerce websites (such as Zara and Amazon) to retrieve discounted men's clothing products. The scraped data is exposed via a clean and flexible JSON API. The project uses **Selenium** for web scraping, **FastAPI** for the API layer, and **Pydantic models** for structured data.
+This project is a **FastAPI-based backend service** that crawls selected e-commerce websites (Zara, Amazon, Mango) to retrieve **discounted men's clothing** products. It exposes this data through a **JSON API**, supports filtering, pagination, and is designed to scale with async scraping and Redis caching.
+
+---
 
 ## Design Decisions
 
-- **FastAPI** was chosen for building the API layer due to its asynchronous support, automatic OpenAPI docs, and excellent performance.
-- **Selenium** is used for scraping Amazon and Zara as both sites require rendering JavaScript and dynamic content loading. This ensures that the content is fully rendered before data extraction.
-- **Pydantic** models are used for data validation and structure to ensure that the data returned by the scraping process is consistent and easy to work with.
-- **Logging** is implemented using Python's standard logging library for better traceability and debugging.
-- The project is designed to be easily extendable to other e-commerce websites by adding new scraping functions and endpoints.
+- **FastAPI** is used for its performance, automatic OpenAPI documentation, and native async support.
+- **Selenium** powers web scraping for dynamic pages like Zara and Amazon.
+- **Redis** caches results to reduce repeated scraping and improve performance.
+- **Asyncio** allows concurrent scraping across multiple stores for faster response times.
+- **Pydantic models** ensure clean, typed, and validated API responses.
+- **Logging** is implemented via the built-in `logging` module.
+- Easily extendable architecture — just drop a new scraper function and route.
+
+---
 
 ## Project Structure
 
 ```plaintext
 app/
-├── main.py                # FastAPI application
+├── main.py                # FastAPI app and API setup
 ├── models/                
-│   └── product.py         # Pydantic models for products
+│   └── product.py         # Pydantic model for products
 ├── routers/                
-│   └── products.py         # Get and return the scraped products API
+│   └── products.py        # Product API with filters, pagination
 ├── services/
-│   └── amazon_scraper.py         # Scraping logic for Amazon
-│   └── zara_scraper.py         # Scraping logic for Zara
+│   ├── amazon_scraper.py  # Amazon scraping logic (Selenium)
+│   ├── zara_scraper.py    # Zara scraping logic (Selenium)
+│   └── mango_scraper.py   # Mango scraping logic (Selenium)
+│   └── redis_cache.py           # Redis caching helpers
 ├── utils/
-│   └── logger.py          # Logger configuration
+│   ├── logger.py          # Logger setup
 tests/
-└── test_products.py       # Basic tests for the API
+└── test_products.py       # Basic tests
 Dockerfile                 # Dockerfile for containerization
-README.md                  # Project documentation
-requirements.txt           # Project dependencies
+docker-compose.yml         # Multi-service config (API + Redis + Chrome)
+README.md                  # You're here
+requirements.txt           # Python dependencies
 ```
 
-# Install Dependencies
+---
 
-Install the required Python packages using pip:
+## Installation
+
+### 1. Clone and install dependencies
 ```bash
+git clone https://github.com/HamidRezaSZ/fastapi-crawler.git
+cd fastapi-crawler
 pip install -r requirements.txt
 ```
 
-# Setup ChromeDriver (for Selenium)
+### 2. ChromeDriver setup (if running locally)
+Ensure your system has Chrome and the correct version of [ChromeDriver](https://chromedriver.chromium.org/). Place the binary in your PATH or configure Selenium to use a custom path.
 
-Download the appropriate version of ChromeDriver that matches your Chrome version.
-Ensure that the chromedriver binary is available in your PATH or provide the path in the code.
+---
 
-# Run the Project
+## Docker Setup (Recommended)
 
-1. Run the FastAPI server using uvicorn:
+### 1. Build and run with Docker Compose
 ```bash
-uvicorn app.main:app --reload
-```
-This starts the FastAPI application locally on port 8000 by default. The OpenAPI docs will be available at http://127.0.0.1:8000/docs.
-
-2. Test the API:
-You can test the API by calling the GET /discounted-products endpoint. The API allows the following optional query parameters:
-
-- store: Filter by store (e.g., zara, amazon).
-- category: Filter by clothing type (e.g., shirt, pants).
-- min_discount: Minimum discount percentage (e.g., 20).
-- page: The page of results to return
-- page_size: The number of results per page
-
-# Sample API Requests
-
-1. Fetch all discounted products:
-```bash
-curl -X 'GET' 'http://127.0.0.1:8000/discounted-products'
-```
-2. Fetch discounted products from Zara with at least a 20% discount:
-```bash
-curl -X 'GET' 'http://127.0.0.1:8000/discounted-products?store=zara&min_discount=20'
-
-```
-3. Fetch discounted shirts with at least a 30% discount:
-```bash
-curl -X 'GET' 'http://127.0.0.1:8000/discounted-products?category=shirt&min_discount=30'
+docker-compose up --build
 ```
 
-# Docker Setup
+This starts:
+- FastAPI app at [http://localhost:8000](http://localhost:8000)
+- Redis cache
+- Chrome (headless, for Selenium)
 
-To run the application in Docker, use the following steps:
-1. Build the Docker image:
+### 2. View docs
+Visit [http://localhost:8000/docs](http://localhost:8000/docs) for Swagger UI.
+
+---
+
+## Sample API Requests
+
+### 1. Get all discounted products
 ```bash
-docker build -t fastapi-crawler .
+curl "http://localhost:8000/discounted-products"
 ```
-2. Run the Docker container:
+
+### 2. Filter by store and discount
 ```bash
-docker run -d -p 8000:8000 fastapi-crawler
+curl "http://localhost:8000/discounted-products?store=zara&min_discount=20"
 ```
-The API will be available at http://localhost:8000.
 
-# Testing
+### 3. Filter by category
+```bash
+curl "http://localhost:8000/discounted-products?category=shirt&min_discount=30"
+```
 
-Basic test cases are included to validate the core functionality of the API.
+### 4. Paginate
+```bash
+curl "http://localhost:8000/discounted-products?page=2&page_size=5"
+```
 
-To run the tests:
+---
+
+## Caching with Redis
+
+The API caches results per store using Redis to reduce scraping load and improve speed. Cached data expires after 1 hour by default. You can adjust TTL in `app/utils/cache.py`.
+
+No setup needed — Redis is included in Docker Compose.
+
+---
+
+## Testing
+
+Run the tests using:
 ```bash
 pytest tests/test_products.py
 ```
+
+Make sure Chrome/Redis are accessible during testing or mock them.
+
+---
+
+## Technologies Used
+
+- **FastAPI**
+- **Selenium**
+- **Redis**
+- **Docker & Docker Compose**
+- **Pydantic**

@@ -41,15 +41,18 @@ async def get_discounted_products(
     """
     all_products: List[Product] = []
 
+    start_index = (page - 1) * page_size
+    end_index = start_index + page_size
+
     try:
         scrape_tasks = []
 
         if not store or store.lower() == "zara":
-            scrape_tasks.append(asyncio.to_thread(scrape_zara_discounted_products))
+            scrape_tasks.append(scrape_zara_discounted_products())
         if not store or store.lower() == "amazon":
-            scrape_tasks.append(asyncio.to_thread(scrape_amazon_discounted_products))
+            scrape_tasks.append(scrape_amazon_discounted_products())
         if not store or store.lower() == "mango":
-            scrape_tasks.append(asyncio.to_thread(scrape_mango_discounted_products))
+            scrape_tasks.append(scrape_mango_discounted_products())
 
         results = await asyncio.gather(*scrape_tasks, return_exceptions=True)
 
@@ -68,11 +71,9 @@ async def get_discounted_products(
                 p for p in all_products if p.discount_percent >= min_discount
             ]
 
-        start_index = (page - 1) * page_size
-        end_index = start_index + page_size
-
         return all_products[start_index:end_index]
 
     except Exception as e:
         logger.error(f"Error processing the request for discounted products: {e}")
+
     return all_products[start_index:end_index]

@@ -1,3 +1,5 @@
+import json
+import os
 from typing import List
 
 from selenium import webdriver
@@ -7,9 +9,12 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 from app.models.product import Product
+from app.services.redis_cache import get_cache, set_cache
 from app.utils.logger import logger
 
-MANGO_MEN_SALE_URL = "https://shop.mango.com/tr/tr/c/erkek/promosyon_106c5d6d"
+MANGO_MEN_SALE_URL = os.getenv('MANGO_MEN_SALE_URL')
+CACHE_KEY = os.getenv("MANGO_CACHE_KEY")
+SELENIUM_URL = os.getenv("SELENIUM_URL")
 
 
 def initialize_driver() -> webdriver.Chrome:
@@ -21,12 +26,17 @@ def initialize_driver() -> webdriver.Chrome:
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
-    driver = webdriver.Chrome(options=options)
+    options.add_argument('--disable-extensions')
+    options.add_argument('--blink-settings=imagesEnabled=false')
+    driver = webdriver.Remote(
+        command_executor=SELENIUM_URL,
+        options=options,
+    )
     logger.info("Selenium WebDriver initialized")
     return driver
 
 
-def scrape_mango_discounted_products() -> List[Product]:
+async def scrape_mango_discounted_products() -> List[Product]:
     """
     Scrap Mango discounted mens clothing products using Selenium.
     Returns a list of Product objects with the following attributes:
@@ -41,9 +51,12 @@ def scrape_mango_discounted_products() -> List[Product]:
     """
     products = []
 
+    cached = await get_cache(CACHE_KEY)
+    if cached:
+        return [Product(**p) for p in json.loads(cached)]
+
     try:
         driver = initialize_driver()
-
         driver.get(MANGO_MEN_SALE_URL)
 
         WebDriverWait(driver, 10).until(
@@ -102,6 +115,7 @@ def scrape_mango_discounted_products() -> List[Product]:
     finally:
         driver.quit()
 
+    await set_cache(CACHE_KEY, [p.dict() for p in products])
     return products
 
 

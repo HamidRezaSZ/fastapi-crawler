@@ -1,3 +1,5 @@
+import json
+import os
 import time
 from typing import List
 
@@ -8,9 +10,12 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 from app.models.product import Product
+from app.services.redis_cache import get_cache, set_cache
 from app.utils.logger import logger
 
-AMAZON_MEN_SALE_URL = "https://www.amazon.com/s?i=fashion-mens-intl-ship&bbn=16225019011&rh=n%3A1040658%2Cp_n_deal_type%3A23566065011&dc&ds=v1%3AyFMdCrHkHYylYHYw7bF7TXSxW8SwdVyqzbESS0qE9w4&qid=1743937051&rnid=23566063011&xpid=HLIdqcfvxL6g-&ref=sr_nr_p_n_deal_type_1"
+AMAZON_MEN_SALE_URL = os.getenv('AMAZON_MEN_SALE_URL')
+CACHE_KEY = os.getenv("AMAZON_CACHE_KEY")
+SELENIUM_URL = os.getenv("SELENIUM_URL")
 
 
 def initialize_driver() -> webdriver.Chrome:
@@ -22,12 +27,17 @@ def initialize_driver() -> webdriver.Chrome:
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
-    driver = webdriver.Chrome(options=options)
+    options.add_argument('--disable-extensions')
+    options.add_argument('--blink-settings=imagesEnabled=false')
+    driver = webdriver.Remote(
+        command_executor=SELENIUM_URL,
+        options=options,
+    )
     logger.info("Selenium WebDriver initialized")
     return driver
 
 
-def scrape_amazon_discounted_products() -> List[Product]:
+async def scrape_amazon_discounted_products() -> List[Product]:
     """
     Scrape Amazon discounted men's clothing products using Selenium.
     Returns a list of Product objects with the following attributes:
@@ -41,6 +51,10 @@ def scrape_amazon_discounted_products() -> List[Product]:
     - category: str
     """
     products = []
+
+    cached = await get_cache(CACHE_KEY)
+    if cached:
+        return [Product(**p) for p in json.loads(cached)]
 
     try:
         driver = initialize_driver()
@@ -147,6 +161,7 @@ def scrape_amazon_discounted_products() -> List[Product]:
     finally:
         driver.quit()
 
+    await set_cache(CACHE_KEY, [p.dict() for p in products])
     return products
 
 
