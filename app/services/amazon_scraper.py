@@ -74,7 +74,9 @@ def scrape_amazon_discounted_products() -> List[Product]:
                         .find_element(By.TAG_NAME, "span")
                         .text.strip()
                     )
-                    url = f"https://www.amazon.com{item.find_element(By.CLASS_NAME, 'a-link-normal').get_attribute('href')}"
+                    url = item.find_element(
+                        By.CLASS_NAME, 'a-link-normal'
+                    ).get_attribute('href')
                     image_url = item.find_element(
                         By.CLASS_NAME, "s-image"
                     ).get_attribute("src")
@@ -108,11 +110,19 @@ def scrape_amazon_discounted_products() -> List[Product]:
                     if discount_percent <= 0:
                         continue
 
+                    price_symbol = (
+                        item.find_elements(By.CLASS_NAME, "a-price-symbol")[
+                            -1
+                        ].text.strip()
+                        if item.find_elements(By.CLASS_NAME, "a-price-symbol")
+                        else ""
+                    )
+
                     products.append(
                         Product(
                             name=name,
-                            original_price=original_price,
-                            discounted_price=discounted_price,
+                            original_price=f"{price_symbol} {original_price}",
+                            discounted_price=f"{price_symbol} {discounted_price}",
                             discount_percent=discount_percent,
                             purchase_url=url,
                             image_url=image_url,
