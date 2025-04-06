@@ -1,3 +1,4 @@
+import asyncio
 from typing import List, Optional
 
 from fastapi import APIRouter, Query
@@ -17,9 +18,9 @@ router = APIRouter()
     summary="Get discounted men's clothing products",
     description="This endpoint returns a list of discounted men's clothing products from various stores such as Zara, Amazon and Mango.",
 )
-def get_discounted_products(
+async def get_discounted_products(
     store: Optional[str] = Query(
-        None, description="Filter by store (e.g., 'zara', 'amazon')"
+        None, description="Filter by store (e.g., 'zara', 'amazon', 'mango')"
     ),
     category: Optional[str] = Query(
         None, description="Filter by clothing category (e.g., 'shirt', 'jacket')"
@@ -41,12 +42,22 @@ def get_discounted_products(
     all_products: List[Product] = []
 
     try:
-        if not store or (store and store.lower() == "zara"):
-            all_products.extend(scrape_zara_discounted_products())
-        if not store or (store and store.lower() == "amazon"):
-            all_products.extend(scrape_amazon_discounted_products())
-        if not store or (store and store.lower() == "mango"):
-            all_products.extend(scrape_mango_discounted_products())
+        scrape_tasks = []
+
+        if not store or store.lower() == "zara":
+            scrape_tasks.append(asyncio.to_thread(scrape_zara_discounted_products))
+        if not store or store.lower() == "amazon":
+            scrape_tasks.append(asyncio.to_thread(scrape_amazon_discounted_products))
+        if not store or store.lower() == "mango":
+            scrape_tasks.append(asyncio.to_thread(scrape_mango_discounted_products))
+
+        results = await asyncio.gather(*scrape_tasks, return_exceptions=True)
+
+        for result in results:
+            if isinstance(result, Exception):
+                logger.error(f"Scraping error: {result}")
+            else:
+                all_products.extend(result)
 
         if category:
             all_products = [
@@ -65,4 +76,4 @@ def get_discounted_products(
 
     except Exception as e:
         logger.error(f"Error processing the request for discounted products: {e}")
-        return []
+    return all_products[start_index:end_index]
