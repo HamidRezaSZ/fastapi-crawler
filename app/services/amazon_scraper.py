@@ -160,4 +160,8 @@ def guess_category_from_name(name: str) -> str:
         return "pants"
     if "hoodie" in name_lower:
         return "hoodie"
+    if "socks" in name_lower:
+        return "socks"
+    if "shorts" in name_lower:
+        return "shorts"
     return "other"

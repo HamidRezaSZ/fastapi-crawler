@@ -126,9 +126,9 @@ def guess_category_from_name(name: str) -> str:
     name_lower = name.lower()
     if "jacket" in name_lower:
         return "jacket"
-    if "shirt" in name_lower or "tee" in name_lower:
+    if "shirt" in name_lower:
         return "shirt"
-    if "pants" in name_lower or "trouser" in name_lower:
+    if "pants" in name_lower:
         return "pants"
     if "hoodie" in name_lower:
         return "hoodie"
