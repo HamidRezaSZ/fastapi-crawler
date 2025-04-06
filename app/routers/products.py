@@ -16,7 +16,7 @@ router = APIRouter()
     "/discounted-products",
     response_model=List[Product],
     summary="Get discounted men's clothing products",
-    description="This endpoint returns a list of discounted men's clothing products from various stores such as Zara, Amazon and Mango.",
+    description="This endpoint returns a list of discounted men's clothing products from various stores such as Zara, Amazon, and Mango.",
 )
 async def get_discounted_products(
     store: Optional[str] = Query(
@@ -28,8 +28,8 @@ async def get_discounted_products(
     min_discount: Optional[float] = Query(
         None, ge=0, le=100, description="Filter by minimum discount percentage (0-100%)"
     ),
-    page: int = 1,
-    page_size: int = 10,
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(10, ge=1, le=100, description="Number of items per page"),
 ) -> List[Product]:
     """
     Get discounted products with filtering and pagination support.
@@ -63,7 +63,6 @@ async def get_discounted_products(
             all_products = [
                 p for p in all_products if p.category.lower() == category.lower()
             ]
-
         if min_discount:
             all_products = [
                 p for p in all_products if p.discount_percent >= min_discount
