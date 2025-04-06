@@ -13,9 +13,9 @@ from app.models.product import Product
 from app.services.redis_cache import get_cache, set_cache
 from app.utils.logger import logger
 
-AMAZON_MEN_SALE_URL = os.getenv('AMAZON_MEN_SALE_URL')
-CACHE_KEY = os.getenv("AMAZON_CACHE_KEY")
-SELENIUM_URL = os.getenv("SELENIUM_URL")
+AMAZON_MEN_SALE_URL = os.environ.get('AMAZON_MEN_SALE_URL')
+CACHE_KEY = os.environ.get("AMAZON_CACHE_KEY")
+SELENIUM_URL = os.environ.get("SELENIUM_URL")
 
 
 def initialize_driver() -> webdriver.Chrome:
@@ -28,10 +28,14 @@ def initialize_driver() -> webdriver.Chrome:
     options.add_argument('--disable-extensions')
     options.add_argument('--blink-settings=imagesEnabled=false')
 
-    driver = webdriver.Remote(
-        command_executor=SELENIUM_URL,
-        options=options,
-    )
+    if os.environ.get("USE_REMOTE_DRIVER", "false").lower() == "true":
+        driver = webdriver.Remote(
+            command_executor=SELENIUM_URL,
+            options=options,
+        )
+    else:
+        driver = webdriver.Chrome(options=options)
+
     logger.info("Selenium WebDriver initialized")
     return driver
 
@@ -52,6 +56,7 @@ async def scrape_amazon_discounted_products() -> List[Product]:
             - category: str
     """
     products = []
+    driver = None
 
     cached = await get_cache(CACHE_KEY)
     if cached:
@@ -161,7 +166,11 @@ async def scrape_amazon_discounted_products() -> List[Product]:
     except Exception as e:
         logger.error(f"Error scraping Amazon products: {e}")
     finally:
-        driver.quit()
+        if driver:
+            try:
+                driver.quit()
+            except Exception as e:
+                logger.error(f"Error quitting the driver: {e}")
 
     await set_cache(CACHE_KEY, [p.dict() for p in products])
     return products
