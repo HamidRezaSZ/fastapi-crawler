@@ -46,27 +46,32 @@ async def get_discounted_products(
 
     try:
         scrape_tasks = []
+        store_mapping = {
+            "zara": scrape_zara_discounted_products,
+            "amazon": scrape_amazon_discounted_products,
+            "mango": scrape_mango_discounted_products,
+        }
 
-        if not store or store.lower() == "zara":
-            scrape_tasks.append(scrape_zara_discounted_products())
-        if not store or store.lower() == "amazon":
-            scrape_tasks.append(scrape_amazon_discounted_products())
-        if not store or store.lower() == "mango":
-            scrape_tasks.append(scrape_mango_discounted_products())
+        if store:
+            store = store.lower()
+            if store in store_mapping:
+                scrape_tasks.append(store_mapping[store]())
+        else:
+            scrape_tasks = [scraper() for scraper in store_mapping.values()]
 
         results = await asyncio.gather(*scrape_tasks, return_exceptions=True)
 
         for result in results:
             if isinstance(result, Exception):
                 logger.error(f"Scraping error: {result}")
-            else:
-                all_products.extend(result)
+                continue
+            all_products.extend(result)
 
         if category:
-            all_products = [
-                p for p in all_products if p.category.lower() == category.lower()
-            ]
-        if min_discount:
+            category = category.lower()
+            all_products = [p for p in all_products if p.category.lower() == category]
+
+        if min_discount is not None:
             all_products = [
                 p for p in all_products if p.discount_percent >= min_discount
             ]
