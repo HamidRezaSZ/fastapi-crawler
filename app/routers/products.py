@@ -43,7 +43,6 @@ def get_discounted_products(
     try:
         if not store or (store and store.lower() == "zara"):
             all_products.extend(scrape_zara_discounted_products())
-
         if not store or (store and store.lower() == "amazon"):
             all_products.extend(scrape_amazon_discounted_products())
         if not store or (store and store.lower() == "mango"):

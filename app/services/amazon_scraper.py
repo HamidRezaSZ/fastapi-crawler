@@ -94,8 +94,16 @@ def scrape_amazon_discounted_products() -> List[Product]:
                         discounted_price_whole + "." + discounted_price_fraction
                     )
 
+                    price_symbol = (
+                        item.find_elements(By.CLASS_NAME, "a-price-symbol")[
+                            -1
+                        ].text.strip()
+                        if item.find_elements(By.CLASS_NAME, "a-price-symbol")
+                        else "$"
+                    )
+
                     original_price = (
-                        original_price_el[-1].text.strip().replace("$", "")
+                        original_price_el[-1].text.strip().replace(price_symbol, "")
                         if original_price_el and original_price_el[-1].text.strip()
                         else 0
                     )
@@ -110,19 +118,11 @@ def scrape_amazon_discounted_products() -> List[Product]:
                     if discount_percent <= 0:
                         continue
 
-                    price_symbol = (
-                        item.find_elements(By.CLASS_NAME, "a-price-symbol")[
-                            -1
-                        ].text.strip()
-                        if item.find_elements(By.CLASS_NAME, "a-price-symbol")
-                        else ""
-                    )
-
                     products.append(
                         Product(
                             name=name,
-                            original_price=f"{price_symbol} {original_price}",
-                            discounted_price=f"{price_symbol} {discounted_price}",
+                            original_price=f"{price_symbol}{original_price}",
+                            discounted_price=f"{price_symbol}{discounted_price}",
                             discount_percent=discount_percent,
                             purchase_url=url,
                             image_url=image_url,
