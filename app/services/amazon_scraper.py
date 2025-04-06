@@ -10,7 +10,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from app.models.product import Product
 from app.utils.logger import logger
 
-AMAZON_MEN_SALE_URL = "https://www.amazon.com/s?i=fashion-mens-intl-ship&bbn=16225019011&rh=n%3A7141123011%2Cn%3A16225019011%2Cn%3A1040658&qid=1743932896&xpid=HLIdqcfvxL6g-&ref=sr_pg_1"
+AMAZON_MEN_SALE_URL = "https://www.amazon.com/s?i=fashion-mens-intl-ship&bbn=16225019011&rh=n%3A1040658%2Cp_n_deal_type%3A23566065011&dc&ds=v1%3AyFMdCrHkHYylYHYw7bF7TXSxW8SwdVyqzbESS0qE9w4&qid=1743937051&rnid=23566063011&xpid=HLIdqcfvxL6g-&ref=sr_nr_p_n_deal_type_1"
 
 
 def initialize_driver() -> webdriver.Chrome:
@@ -47,7 +47,7 @@ def scrape_amazon_discounted_products() -> List[Product]:
         page = 1
         driver.get(AMAZON_MEN_SALE_URL)
 
-        while len(products) == 0 and page <= 5:
+        while len(products) == 0 and page <= 3:
             WebDriverWait(driver, 10).until(
                 EC.presence_of_all_elements_located((By.CLASS_NAME, "s-main-slot"))
             )

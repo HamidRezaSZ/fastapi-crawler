@@ -9,7 +9,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from app.models.product import Product
 from app.utils.logger import logger
 
-MANGO_MEN_SALE_URL = "https://shop.mango.com/tr/tr/c/erkek/pantolon_b126cc9c"
+MANGO_MEN_SALE_URL = "https://shop.mango.com/tr/tr/c/erkek/promosyon_106c5d6d"
 
 
 def initialize_driver() -> webdriver.Chrome:
@@ -78,6 +78,9 @@ def scrape_mango_discounted_products() -> List[Product]:
                 )
                 discount_percent = round((orig - disc) / orig * 100, 2)
 
+                if discount_percent < 0:
+                    continue
+
                 products.append(
                     Product(
                         name=name,
@@ -104,12 +107,14 @@ def scrape_mango_discounted_products() -> List[Product]:
 
 def guess_category_from_name(name: str) -> str:
     name_lower = name.lower()
-    if "jacket" in name_lower:
+    if "ceket" in name_lower:
         return "jacket"
-    if "shirt" in name_lower or "tee" in name_lower:
+    if "gömlek" in name_lower:
         return "shirt"
-    if "pants" in name_lower or "trouser" in name_lower:
+    if "pantolon" in name_lower:
         return "pants"
-    if "hoodie" in name_lower:
-        return "hoodie"
+    if "sweatshirt" in name_lower:
+        return "sweatshirt"
+    if "mont" in name_lower:
+        return "coat"
     return "other"

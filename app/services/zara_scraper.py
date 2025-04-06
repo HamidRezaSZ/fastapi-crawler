@@ -1,3 +1,4 @@
+import time
 from typing import List
 
 from selenium import webdriver
@@ -9,7 +10,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from app.models.product import Product
 from app.utils.logger import logger
 
-ZARA_MEN_SALE_URL = "https://www.zara.com/us/en/man-all-products-l7465.html"
+ZARA_MEN_SALE_URL = "https://www.zara.com/us/en/man-special-prices-l806.html?v1=2436823"
 
 
 def initialize_driver() -> webdriver.Chrome:
@@ -17,7 +18,7 @@ def initialize_driver() -> webdriver.Chrome:
     Initialize the Selenium WebDriver with Chrome options
     """
     options = Options()
-    options.add_argument("--headless")
+    # options.add_argument("--headless")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
@@ -46,8 +47,19 @@ def scrape_zara_discounted_products() -> List[Product]:
 
         driver.get(ZARA_MEN_SALE_URL)
 
+        try:
+            WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.ID, "onetrust-reject-all-handler"))
+            )
+
+            driver.find_elements(By.ID, "onetrust-reject-all-handler")[0].click()
+        except Exception as e:
+            pass
+
         WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CLASS_NAME, "product-groups"))
+            EC.presence_of_element_located(
+                (By.CLASS_NAME, "product-grid__product-list")
+            )
         )
 
         items = driver.find_elements(By.CLASS_NAME, "_product")
@@ -63,14 +75,24 @@ def scrape_zara_discounted_products() -> List[Product]:
                 image_url = item.find_element(
                     By.CLASS_NAME, 'media-image__image'
                 ).get_attribute('src')
-                original_price = item.find_element(
+                original_price = (
+                    item.find_elements(By.CLASS_NAME, "money-amount__main")[
+                        -2
+                    ].text.strip()
+                    if item.find_elements(By.CLASS_NAME, "money-amount__main")
+                    else "$ 0"
+                )
+                discounted_price_el = item.find_elements(
                     By.CLASS_NAME, "money-amount__main"
-                ).text.strip()
+                )
                 discounted_price = (
-                    item.find_element(By.CLASS_NAME, "discounted-price").text.strip()
-                    if item.find_element(By.CLASS_NAME, "discounted-price")
+                    discounted_price_el[-1].text.strip()
+                    if discounted_price_el
                     else original_price
                 )
+
+                if not original_price or not discounted_price:
+                    continue
 
                 orig = float(original_price.replace("$ ", "").strip())
                 disc = float(discounted_price.replace("$ ", "").strip())
