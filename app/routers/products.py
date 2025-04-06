@@ -41,12 +41,12 @@ def get_discounted_products(
     all_products: List[Product] = []
 
     try:
-        if not store or store == "zara":
+        if not store or (store and store.lower() == "zara"):
             all_products.extend(scrape_zara_discounted_products())
 
-        if not store or store == "amazon":
+        if not store or (store and store.lower() == "amazon"):
             all_products.extend(scrape_amazon_discounted_products())
-        if not store or store == "mango":
+        if not store or (store and store.lower() == "mango"):
             all_products.extend(scrape_mango_discounted_products())
 
         if category:
