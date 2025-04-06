@@ -18,9 +18,7 @@ SELENIUM_URL = os.getenv("SELENIUM_URL")
 
 
 def initialize_driver() -> webdriver.Chrome:
-    """
-    Initialize the Selenium WebDriver with Chrome options
-    """
+    """Initialize the Selenium WebDriver with Chrome options."""
     options = Options()
     # options.add_argument("--headless")
     options.add_argument("--no-sandbox")
@@ -28,6 +26,7 @@ def initialize_driver() -> webdriver.Chrome:
     options.add_argument("--disable-gpu")
     options.add_argument('--disable-extensions')
     options.add_argument('--blink-settings=imagesEnabled=false')
+
     driver = webdriver.Remote(
         command_executor=SELENIUM_URL,
         options=options,
@@ -38,16 +37,18 @@ def initialize_driver() -> webdriver.Chrome:
 
 async def scrape_zara_discounted_products() -> List[Product]:
     """
-    Scrap Zara discounted mens clothing products using Selenium.
-    Returns a list of Product objects with the following attributes:
-    - name: str
-    - original_price: str
-    - discounted_price: str
-    - discount_percent: float
-    - purchase_url: str
-    - image_url: str
-    - store: str
-    - category: str
+    Scrape Zara discounted men's clothing products using Selenium.
+
+    Returns:
+        List[Product]: A list of Product objects with attributes:
+            - name: str
+            - original_price: str
+            - discounted_price: str
+            - discount_percent: float
+            - purchase_url: str
+            - image_url: str
+            - store: str
+            - category: str
     """
     products = []
 
@@ -63,9 +64,8 @@ async def scrape_zara_discounted_products() -> List[Product]:
             WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located((By.ID, "onetrust-reject-all-handler"))
             )
-
-            driver.find_elements(By.ID, "onetrust-reject-all-handler")[0].click()
-        except Exception as e:
+            driver.find_element(By.ID, "onetrust-reject-all-handler").click()
+        except Exception:
             pass
 
         WebDriverWait(driver, 10).until(
@@ -81,25 +81,25 @@ async def scrape_zara_discounted_products() -> List[Product]:
                 name = item.find_element(
                     By.CLASS_NAME, "product-grid-product-info__name"
                 ).text.strip()
+
                 url = item.find_element(
                     By.CLASS_NAME, 'product-grid-product-info__name'
                 ).get_attribute('href')
+
                 image_url = item.find_element(
                     By.CLASS_NAME, 'media-image__image'
                 ).get_attribute('src')
+
+                price_elements = item.find_elements(By.CLASS_NAME, "money-amount__main")
                 original_price = (
-                    item.find_elements(By.CLASS_NAME, "money-amount__main")[
-                        -2
-                    ].text.strip()
-                    if item.find_elements(By.CLASS_NAME, "money-amount__main")
+                    price_elements[-2].text.strip()
+                    if len(price_elements) >= 2
                     else "$ 0"
                 )
-                discounted_price_el = item.find_elements(
-                    By.CLASS_NAME, "money-amount__main"
-                )
+
                 discounted_price = (
-                    discounted_price_el[-1].text.strip()
-                    if discounted_price_el
+                    price_elements[-1].text.strip()
+                    if price_elements
                     else original_price
                 )
 
@@ -123,11 +123,11 @@ async def scrape_zara_discounted_products() -> List[Product]:
                     )
                 )
             except Exception as e:
-                logger.error(f"Error processing product in Zara: {e}")
+                logger.error(f"Error processing Zara product: {e}")
                 continue
 
     except Exception as e:
-        logger.error(f"Error scraping Zara page: {e}")
+        logger.error(f"Error scraping Zara products: {e}")
     finally:
         driver.quit()
 
@@ -136,13 +136,14 @@ async def scrape_zara_discounted_products() -> List[Product]:
 
 
 def guess_category_from_name(name: str) -> str:
+    """Guess product category based on product name keywords."""
     name_lower = name.lower()
     if "jacket" in name_lower:
         return "jacket"
     if "shirt" in name_lower:
         return "shirt"
-    if "pants" in name_lower:
+    if "pants" in name_lower or "trousers" in name_lower:
         return "pants"
-    if "hoodie" in name_lower:
+    if "hoodie" in name_lower or "sweatshirt" in name_lower:
         return "hoodie"
     return "other"

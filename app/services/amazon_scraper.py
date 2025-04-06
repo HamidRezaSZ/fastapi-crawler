@@ -19,9 +19,7 @@ SELENIUM_URL = os.getenv("SELENIUM_URL")
 
 
 def initialize_driver() -> webdriver.Chrome:
-    """
-    Initialize the Selenium WebDriver with Chrome options
-    """
+    """Initialize the Selenium WebDriver with Chrome options."""
     options = Options()
     # options.add_argument("--headless")
     options.add_argument("--no-sandbox")
@@ -29,6 +27,7 @@ def initialize_driver() -> webdriver.Chrome:
     options.add_argument("--disable-gpu")
     options.add_argument('--disable-extensions')
     options.add_argument('--blink-settings=imagesEnabled=false')
+
     driver = webdriver.Remote(
         command_executor=SELENIUM_URL,
         options=options,
@@ -40,15 +39,17 @@ def initialize_driver() -> webdriver.Chrome:
 async def scrape_amazon_discounted_products() -> List[Product]:
     """
     Scrape Amazon discounted men's clothing products using Selenium.
-    Returns a list of Product objects with the following attributes:
-    - name: str
-    - original_price: str
-    - discounted_price: str
-    - discount_percent: float
-    - purchase_url: str
-    - image_url: str
-    - store: str
-    - category: str
+
+    Returns:
+        List[Product]: A list of Product objects with attributes:
+            - name: str
+            - original_price: str
+            - discounted_price: str
+            - discount_percent: float
+            - purchase_url: str
+            - image_url: str
+            - store: str
+            - category: str
     """
     products = []
 
@@ -83,11 +84,13 @@ async def scrape_amazon_discounted_products() -> List[Product]:
                         == ""
                     ):
                         continue
+
                     name = (
                         item.find_element(By.CLASS_NAME, "s-title-instructions-style")
                         .find_element(By.TAG_NAME, "span")
                         .text.strip()
                     )
+
                     url = item.find_element(
                         By.CLASS_NAME, 'a-link-normal'
                     ).get_attribute('href')
@@ -98,9 +101,11 @@ async def scrape_amazon_discounted_products() -> List[Product]:
                     discounted_price_whole = item.find_element(
                         By.CLASS_NAME, "a-price-whole"
                     ).text.strip()
+
                     discounted_price_fraction = item.find_element(
                         By.CLASS_NAME, "a-price-fraction"
                     ).text.strip()
+
                     original_price_el = item.find_elements(
                         By.CLASS_NAME, "a-text-price"
                     )
@@ -149,11 +154,8 @@ async def scrape_amazon_discounted_products() -> List[Product]:
                     continue
 
             page += 1
-            (
+            if driver.find_elements(By.CLASS_NAME, "s-pagination-next"):
                 driver.find_elements(By.CLASS_NAME, "s-pagination-next")[0].click()
-                if driver.find_elements(By.CLASS_NAME, "s-pagination-next")
-                else None
-            )
             time.sleep(2)
 
     except Exception as e:
@@ -166,6 +168,7 @@ async def scrape_amazon_discounted_products() -> List[Product]:
 
 
 def guess_category_from_name(name: str) -> str:
+    """Guess product category based on product name."""
     name_lower = name.lower()
     if "jacket" in name_lower:
         return "jacket"
