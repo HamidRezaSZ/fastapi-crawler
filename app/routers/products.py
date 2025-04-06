@@ -4,6 +4,7 @@ from fastapi import APIRouter, Query
 
 from app.models.product import Product
 from app.services.amazon_scraper import scrape_amazon_discounted_products
+from app.services.mango_scraper import scrape_mango_discounted_products
 from app.services.zara_scraper import scrape_zara_discounted_products
 from app.utils.logger import logger
 
@@ -14,7 +15,7 @@ router = APIRouter()
     "/discounted-products",
     response_model=List[Product],
     summary="Get discounted men's clothing products",
-    description="This endpoint returns a list of discounted men's clothing products from various stores such as Zara and Amazon.",
+    description="This endpoint returns a list of discounted men's clothing products from various stores such as Zara, Amazon and Mango.",
 )
 def get_discounted_products(
     store: Optional[str] = Query(
@@ -45,6 +46,8 @@ def get_discounted_products(
 
         if not store or store == "amazon":
             all_products.extend(scrape_amazon_discounted_products())
+        if not store or store == "mango":
+            all_products.extend(scrape_mango_discounted_products())
 
         if category:
             all_products = [
